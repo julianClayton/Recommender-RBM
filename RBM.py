@@ -50,7 +50,7 @@ class RBM:
 
 
 		#first pass back to visible
-		visible_1  		   = self.backward_prop(hidden_0)
+		visible_1  		   = self.get_activations(self.backward_prop(hidden_0))
 
 		#second pass back to hidden 
 		hidden_1 = self.forward_prop(visible_1)
@@ -84,11 +84,11 @@ class RBM:
 		self.num = tf.exp(tf.matmul(hidden_samples, tf.transpose(self.W))+ self.bv)
 		self.dem = tf.reduce_sum(self.num)
 
-		self.prob = tf.divide(self.num,self.dem)
 		self.new_shape = tf.reshape(self.num, [-1,5])
 		self.dems = tf.reduce_sum(self.new_shape, 1)
-		probs = tf.divide(tf.transpose(self.new_shape),self.dems)
-		return self.get_activations(tf.reshape(probs, [-1, self.user.size]))
+		self.probs = tf.divide(tf.transpose(self.new_shape),self.dems)
+		self.probs = tf.transpose(self.probs)
+		return tf.reshape(self.probs, [-1, self.user.size])
 
 	def get_activations(self, probs):
 		return tf.nn.relu(tf.sign(probs - tf.random_uniform(tf.shape(probs))))
@@ -103,17 +103,28 @@ class RBM:
 			diff = 100
 			cost = 0
 			iteration = 0
-			while iteration < 2000:
+			while iteration < 100:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
-				#print(sess.run(self.v_sample, feed_dict={self.x: self.user}))
-				#print(sess.run(self.num, feed_dict={self.x: self.user}))
-				#print(sess.run(self.new_shape, feed_dict={self.x: self.user}))				
+		
 				iteration+=1
 				if (iteration % self.display_step == 0):
 					print("iteration: " + str(iteration)+  " /" + str(self.iterations) + " COST: " + str(new_cost))
+				if (iteration % 2 == 0):
+					print("===========================")
+					rand = randint(0, self.user.size-1)
+					before = sess.run([self.new_shape, self.dems, self.probs], feed_dict={self.x: self.user})
+					print(before)
+
+					print("original first")
+					original = sess.run(self.x, feed_dict={self.x: self.user})
+					print(original[0][:5])
+					print("original second")
+					print(original[0][5:10])
+					#first = after[0][:5]
+					#print(first)
 			print("converged after: " + str(iteration) + " iterations")
 
-if __name__ == "__main__":
-	rbm = RBM(500,100, dataset=MOVIE_LENS)
-	rbm.run()
+#if __name__ == "__main__":
+	#rbm = RBM(500,100, dataset=MOVIE_LENS)
+	#rbm.run()
