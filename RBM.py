@@ -26,9 +26,6 @@ class RBM:
 		num_ratings 		= 5
 
 		input_layer_n 		= self.user.size
-		print("shape: " + str(self.user.shape))
-		print("input_layer_n: " + str(input_layer_n))
-		#print(self.user)
 
 
 		self.x  = tf.placeholder(tf.float32, [None, input_layer_n], name="x") 
@@ -107,8 +104,6 @@ class RBM:
 	def run(self):
 		with tf.Session() as sess:
 			sess.run(self.init)
-			diff = 100
-			cost = 0
 			iteration = 0
 			while iteration < 150:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
