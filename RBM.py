@@ -76,13 +76,11 @@ class RBM:
 		return self.get_activations(hidden_activation)
 
 	def backward_prop(self, hidden_samples):
-		self.num = tf.exp(tf.matmul(hidden_samples, tf.transpose(self.W))+ self.bv)
-		self.dem = tf.reduce_sum(self.num)
-
-		self.new_shape = tf.reshape(self.num, [-1,5])
-		self.dems = tf.reduce_sum(self.new_shape, 1)
-		self.probs = tf.transpose(tf.divide(tf.transpose(self.new_shape),self.dems))
-		return tf.reshape(self.probs, [-1, self.user.size])
+		num = tf.exp(tf.matmul(hidden_samples, tf.transpose(self.W))+ self.bv)
+		num_reshape = tf.reshape(num, [-1,5])
+		dems = tf.reduce_sum(num_reshape, 1)
+		probs = tf.transpose(tf.divide(tf.transpose(num_reshape),dems))
+		return tf.reshape(probs, [-1, self.user.size])
 
 	def get_activations(self, probs):
 		return tf.nn.relu(tf.sign(probs - tf.random_uniform(tf.shape(probs))))
