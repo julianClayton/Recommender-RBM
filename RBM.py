@@ -4,16 +4,13 @@ import data_reader
 import matplotlib.pyplot as plt
 from random import randint
 
-
-MNIST = "MNIST"
-
 class RBM:
 
 	def __init__(
 		self,
 		hidden_layer_n,
 		iterations,
-		user,
+		dataset,
 		batch_size=50,
 		alpha=0.01,
 		W=None):
@@ -24,13 +21,11 @@ class RBM:
 		self.display_step 	= 3
 		self.iterations 	= iterations
 
-		self.user 			= user
+		self.full_user		= dataset
+		self.user 			= self.ratings_to_softmax_units(dataset)
 		num_ratings 		= 5
 
 		input_layer_n 		= self.user.size
-		print("shape: " + str(self.user.shape))
-		print("input_layer_n: " + str(input_layer_n))
-		#print(self.user)
 
 
 		self.x  = tf.placeholder(tf.float32, [None, input_layer_n], name="x") 
@@ -86,9 +81,7 @@ class RBM:
 
 		self.new_shape = tf.reshape(self.num, [-1,5])
 		self.dems = tf.reduce_sum(self.new_shape, 1)
-		self.probs = tf.divide(tf.transpose(self.new_shape),self.dems)
-		self.probs = tf.transpose(self.probs)
-		self.probs2 = tf.reshape(self.probs, [-1, self.user.size])
+		self.probs = tf.transpose(tf.divide(tf.transpose(self.new_shape),self.dems))
 		return tf.reshape(self.probs, [-1, self.user.size])
 
 	def get_activations(self, probs):
@@ -98,11 +91,19 @@ class RBM:
 	def softmax(self, x):
 		return np.exp(x) / np.sum(np.exp(x), axis=0)
 
+	def ratings_to_softmax_units(self, user):
+		sm_units = []
+		for rating in user:
+			if (rating != 0):
+				feature = np.zeros(5)
+				feature[int(rating - 1)] = 1
+				sm_units.append(self.softmax(feature.T))
+		features = np.asarray(sm_units)
+		return features.flatten().reshape((1, features.size))
+
 	def run(self):
 		with tf.Session() as sess:
 			sess.run(self.init)
-			diff = 100
-			cost = 0
 			iteration = 0
 			while iteration < 150:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
@@ -111,21 +112,4 @@ class RBM:
 				iteration+=1
 				if (iteration % self.display_step == 0):
 					print("iteration: " + str(iteration)+  " /" + str(self.iterations) + " COST: " + str(new_cost))
-				if (iteration % 2 == 0):
-					"""print("===========================")
-					rand = randint(0, self.user.size-1)
-					before = sess.run([self.new_shape, self.dems, self.probs, self.probs2, self.x], feed_dict={self.x: self.user})
-					print(before)
-
-					print("original first")
-					original = sess.run(self.x, feed_dict={self.x: self.user})
-					print(original[0][:5])
-					print("original second")
-					print(original[0][5:10])
-					#first = after[0][:5]
-					#print(first)"""
 			print("converged after: " + str(iteration) + " iterations")
-
-#if __name__ == "__main__":
-	#rbm = RBM(500,100, dataset=MOVIE_LENS)
-	#rbm.run()
