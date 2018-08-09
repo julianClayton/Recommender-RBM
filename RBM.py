@@ -20,8 +20,13 @@ class RBM:
 		self.batch_size 	= batch_size
 		self.display_step 	= 3
 		self.iterations 	= iterations
-
+		self.hidden_layer_n = hidden_layer_n
+		#We will only use non-zero values when training
 		self.full_user		= dataset
+		self.full_weights 	= np.zeros((self.full_user.size, hidden_layer_n))
+		self.locations 		= []
+
+
 		self.user 			= self.ratings_to_softmax_units(dataset)
 		num_ratings 		= 5
 
@@ -85,18 +90,24 @@ class RBM:
 	def get_activations(self, probs):
 		return tf.nn.relu(tf.sign(probs - tf.random_uniform(tf.shape(probs))))
 
+	def set_full_weights(self, weights):
+		for i in self.locations:
+			for j in range(self.hidden_layer_n):
+				self.full_weights[i][j] = weights[i][j]
 
 	def softmax(self, x):
 		return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 	def ratings_to_softmax_units(self, user):
 		sm_units = []
-		for rating in user:
-			if (rating != 0):
+		for i in range(len(user)):
+			if (user[i] != 0):
+				self.locations.append(i)
 				feature = np.zeros(5)
-				feature[int(rating - 1)] = 1
+				feature[int(user[i] - 1)] = 1
 				sm_units.append(self.softmax(feature.T))
 		features = np.asarray(sm_units)
+		print("user has rated " + str(len(self.locations)) + " movies")
 		return features.flatten().reshape((1, features.size))
 
 	def run(self):
@@ -106,8 +117,9 @@ class RBM:
 			while iteration < 150:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
-		
 				iteration+=1
 				if (iteration % self.display_step == 0):
 					print("iteration: " + str(iteration)+  " /" + str(self.iterations) + " COST: " + str(new_cost))
+			self.set_full_weights(self.W.eval())
 			print("converged after: " + str(iteration) + " iterations")
+		return self.full_weights
