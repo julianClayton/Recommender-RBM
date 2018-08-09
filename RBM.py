@@ -69,7 +69,7 @@ class RBM:
 
 		#variable v is the probabilities of the visible sample (not the states). This is nicer for visualization
 		self.v = tf.nn.sigmoid(tf.matmul(h_sample, tf.transpose(self.W)) + self.bv)
-		self.err = tf.reduce_mean((self.x - self.v_sample)**2)
+		self.err = tf.reduce_mean(tf.subtract(self.x, self.v_sample)**2)
 
 		self.update_all = [self.W.assign_add(update_weights), self.bv.assign_add(update_bv), self.bh.assign_add(update_bh)]
 
@@ -88,6 +88,7 @@ class RBM:
 		self.dems = tf.reduce_sum(self.new_shape, 1)
 		self.probs = tf.divide(tf.transpose(self.new_shape),self.dems)
 		self.probs = tf.transpose(self.probs)
+		self.probs2 = tf.reshape(self.probs, [-1, self.user.size])
 		return tf.reshape(self.probs, [-1, self.user.size])
 
 	def get_activations(self, probs):
@@ -103,7 +104,7 @@ class RBM:
 			diff = 100
 			cost = 0
 			iteration = 0
-			while iteration < 100:
+			while iteration < 150:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 		
@@ -111,9 +112,9 @@ class RBM:
 				if (iteration % self.display_step == 0):
 					print("iteration: " + str(iteration)+  " /" + str(self.iterations) + " COST: " + str(new_cost))
 				if (iteration % 2 == 0):
-					print("===========================")
+					"""print("===========================")
 					rand = randint(0, self.user.size-1)
-					before = sess.run([self.new_shape, self.dems, self.probs], feed_dict={self.x: self.user})
+					before = sess.run([self.new_shape, self.dems, self.probs, self.probs2, self.x], feed_dict={self.x: self.user})
 					print(before)
 
 					print("original first")
@@ -122,7 +123,7 @@ class RBM:
 					print("original second")
 					print(original[0][5:10])
 					#first = after[0][:5]
-					#print(first)
+					#print(first)"""
 			print("converged after: " + str(iteration) + " iterations")
 
 #if __name__ == "__main__":
