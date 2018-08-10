@@ -1,6 +1,9 @@
 from RBM import RBM
 import data_reader
 import numpy as np
+import os
+from pathlib import Path
+
 np.set_printoptions(threshold=np.nan)
 
 """
@@ -12,26 +15,46 @@ The RBM will create a new RBM for each new user
 """
 
 HIDDEN_LAYER_N = 30
-ITERATIONS 	   = 100
+ITERATIONS 	   = 5
 RATING_MAX 	   = 5
+
+WEIGHTS_FILE   = "data/saved_weights"
 
 class Recommender:
 
 	def __init__(self):
 
 		self.dataset = data_reader.movie_lens()
+		self.all_weights = []
 
-		user = self.dataset.training_X[:,0]
+	def train(self):
+		for i in range(self.dataset.training_X.shape[1]):
+				user = self.dataset.training_X[:,i]
+				rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
+				rbm.run()
+				full_weights = rbm.full_weights
+				self.all_weights.append(full_weights)
 
-		rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
+		self.average_weights =  self.average_weights()
+		print("total weights: " + str(len(self.all_weights)))
+		self.save_weights()
 
-		full_weights = rbm.run()
+	def average_weights(self):
+		accum_mat = np.zeros(self.all_weights[0].shape)
+		for i in range(len(self.all_weights)):
+			accum_mat += self.all_weights[i]
+		return accum_mat / len(self.all_weights)
 
-		print("full_weights")
-		print(full_weights.size)
+	def save_weights(self):
+		os.remove(WEIGHTS_FILE)
+		f = open(WEIGHTS_FILE, "wb")
+		np.save(f, self.average_weights)
 
-
+	def load_weights(self):
+		f = open(WEIGHTS_FILE, "rb")
+		return np.load(f)
 
 
 if __name__ == "__main__":
 	redcommender = Recommender()
+	redcommender.train()
