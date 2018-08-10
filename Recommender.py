@@ -28,12 +28,15 @@ class Recommender:
 		self.all_weights = []
 
 	def train(self):
-		for i in range(self.dataset.training_X.shape[1]):
-				user = self.dataset.training_X[:,i]
-				rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
-				rbm.run()
-				full_weights = rbm.full_weights
-				self.all_weights.append(full_weights)
+		#self.dataset.training_X.shape[1]
+
+		for i in range(200):
+			user = self.dataset.training_X[:,i]
+			rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
+			rbm.run()
+			full_weights = rbm.full_weights
+			self.all_weights.append(full_weights)
+			print("RBM number: " + str(i))
 
 		self.average_weights =  self.average_weights()
 		print("total weights: " + str(len(self.all_weights)))
@@ -53,6 +56,12 @@ class Recommender:
 	def load_weights(self):
 		f = open(WEIGHTS_FILE, "rb")
 		return np.load(f)
+
+	def _gamma(self):
+		print("todo")
+
+	def recommend(self):
+		self.average_weights = self.load_weights()
 
 
 if __name__ == "__main__":
