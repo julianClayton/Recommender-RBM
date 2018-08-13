@@ -18,43 +18,57 @@ HIDDEN_LAYER_N = 30
 ITERATIONS 	   = 5
 RATING_MAX 	   = 5
 
-WEIGHTS_FILE   = "data/saved_weights"
+WEIGHTS_FILE   		= "data/saved_weights"
+HIDDEN_BIAS_FILE 	= "data/saved_hidden_biases"
+VISIBLE_BIAS_FILE 	= "data/saved_visible_biases"
 
 class Recommender:
 
 	def __init__(self):
 
 		self.dataset = data_reader.movie_lens()
+
 		self.all_weights = []
+		self.all_bh		 = []
+		self.all_bv		 = []
+
 
 	def train(self):
 		#self.dataset.training_X.shape[1]
-
-		for i in range(200):
+		self.wb = {}
+		for i in range(10):
 			user = self.dataset.training_X[:,i]
 			rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
 			rbm.run()
-			full_weights = rbm.full_weights
-			self.all_weights.append(full_weights)
+
+			self.all_weights.append(rbm.full_weights)
+			self.all_bv.append(rbm.full_bh)
+			self.all_bh.append(rbm.full_bv)
+
 			print("RBM number: " + str(i))
 
-		self.average_weights =  self.average_weights()
-		print("total weights: " + str(len(self.all_weights)))
-		self.save_weights()
+		self.wb[WEIGHTS_FILE] = self.average_matrices(self.all_weights)
+		self.wb[VISIBLE_BIAS_FILE] = self.average_matrices(self.all_bv)
+		self.wb[HIDDEN_BIAS_FILE] = self.average_matrices(self.all_bh)
 
-	def average_weights(self):
-		accum_mat = np.zeros(self.all_weights[0].shape)
-		for i in range(len(self.all_weights)):
-			accum_mat += self.all_weights[i]
-		return accum_mat / len(self.all_weights)
+		self.save_matrix(WEIGHTS_FILE)
+		self.save_matrix(VISIBLE_BIAS_FILE)
+		self.save_matrix(HIDDEN_BIAS_FILE)
 
-	def save_weights(self):
-		os.remove(WEIGHTS_FILE)
-		f = open(WEIGHTS_FILE, "wb")
-		np.save(f, self.average_weights)
+	def average_matrices(self, M):
+		accum_mat = np.zeros(M[0].shape)
+		for i in range(len(M)):
+			accum_mat += M[i]
+		return accum_mat / len(M)
 
-	def load_weights(self):
-		f = open(WEIGHTS_FILE, "rb")
+
+	def save_matrix(self, dataset):
+		os.remove(dataset)
+		f = open(dataset, "wb")
+		np.save(f, self.wb[dataset])
+
+	def load_matrix(self,dataset):
+		f = open(dataset, "rb")
 		return np.load(f)
 
 	def _gamma(self):

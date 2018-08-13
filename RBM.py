@@ -23,14 +23,21 @@ class RBM:
 		self.hidden_layer_n = hidden_layer_n
 		#We will only use non-zero values when training
 		self.full_user		= dataset
-		self._full_weights 	= np.zeros((self.full_user.size, hidden_layer_n))
-		self.locations 		= []
+
+		self._full_weights 	= np.zeros((self.full_user.size * 5, hidden_layer_n))
+		self._full_bh 		= np.zeros((self.hidden_layer_n))
+		self._full_bv 		= np.zeros((self.full_user.size * 5))
+
+		self.w_locations 	= []
+		self.bh_locations	= []
+		self.bv_locations	= []	
 
 		self.user 			= self.ratings_to_softmax_units(dataset)
 		num_ratings 		= 5
 
 		self.input_layer_n 		= self.user.size
 
+		print("full size: " + str(self.full_user.size) + " " + str(self.input_layer_n))
 
 		self.x  = tf.placeholder(tf.float32, [None, self.input_layer_n], name="x") 
 
@@ -42,7 +49,6 @@ class RBM:
 		#This will be a matrix 
 		self.bv 	= tf.Variable(tf.random_normal([self.input_layer_n ], 0.01),  tf.float32, name="bv")
 
-		print("user has rated " + str(len(self.locations)) + " movies")
 		#first pass from input to hidden
 
 		hidden_0 = self.forward_prop(self.x)
@@ -78,7 +84,7 @@ class RBM:
 		return self.get_activations(hidden_activation)
 
 	def backward_prop(self, hidden_samples):
-		#had to use some tensorflow tomfoolery to make up for using a 1D vector for the input instead of 2d
+		#had to use some tensorflow wankery to make up for using a 1D vector for the input instead of 2d
 		num = tf.exp(tf.matmul(hidden_samples, tf.transpose(self.W))+ self.bv)
 		num_reshape = tf.reshape(num, [-1,5])
 		dems = tf.reduce_sum(num_reshape, 1)
@@ -89,23 +95,33 @@ class RBM:
 		return tf.nn.relu(tf.sign(probs - tf.random_uniform(tf.shape(probs))))
 
 	#might want to double check this later 
-	def set_full_weights(self, weights):
-		for location in self.locations:
+	def _set_full_weights(self, weights):
+		for location in self.w_locations:
 			for i in range(self.input_layer_n):
 				for j in range(self.hidden_layer_n):
 					self._full_weights[location][j] = weights[i][j]
+
+	def _set_full_bv(self, biases):
+		for location in self.w_locations:
+			self._full_bv[location] = location
+
+
 
 	def softmax(self, x):
 		return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 	def ratings_to_softmax_units(self, user):
 		sm_units = []
+		counter = 0
 		for i in range(len(user)):
 			if (user[i] != 0):
-				self.locations.append(i)
+				self.w_locations.append(counter + i)
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
-				sm_units.append(self.softmax(feature.T))
+				for j in range(feature.size):
+					sm_units.append(feature[j])
+					self.w_locations.append(counter + j)
+			counter += 5 
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size))
 
@@ -116,11 +132,27 @@ class RBM:
 			while iteration < self.iterations:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
+				sess.run(self.update_all, feed_dict={self.x: self.user})
+				#res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
+				#print(res)
+				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				iteration+=1
-			self.set_full_weights(self.W.eval())
+			self._set_full_weights(self.W.eval())
+			self._set_full_bv(self.bv.eval())
+			self._full_bh = self.bh.eval()
 			print("Done training")
 
 	@property
 	def full_weights(self):
 		return self._full_weights
+
+	@property
+	def full_bv(self):
+		return self._full_bv
+
+	@property
+	def full_bh(self):
+		return self._full_bh
+	
+	
 	
