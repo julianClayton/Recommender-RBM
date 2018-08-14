@@ -115,13 +115,12 @@ class RBM:
 		counter = 0
 		for i in range(len(user)):
 			if (user[i] != 0):
-				self.w_locations.append(counter + i)
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
 				for j in range(feature.size):
 					sm_units.append(feature[j])
-					self.w_locations.append(counter + j)
-			counter += 5 
+					self.w_locations.append(5*i + j)
+			#counter += 5 
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size))
 
