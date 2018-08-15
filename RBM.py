@@ -132,8 +132,8 @@ class RBM:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				sess.run(self.update_all, feed_dict={self.x: self.user})
-				#res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
-				#print(res)
+				res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
+				print(res)
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				iteration+=1
 			self._set_full_weights(self.W.eval())

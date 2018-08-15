@@ -77,29 +77,18 @@ class Recommender:
 
 	def ratings_to_softmax_units(self, user):
 		sm_units = []
-		counter = 0
-
+		delete_indices = []
 		new_weights = self.average_weights
 		new_bv  = self.average_bv
-		print("new weights before " + str(new_weights.size))
 		for i in range(len(user)):
 			if (user[i] != 0):
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
 				for j in range(feature.size):
 					sm_units.append(feature[j])
-			else:
-				#print("deleting")
-				for j in range(5):
-					print("deleting: " + str(5*i+j))
-					print(new_weights[5*i+j])
-					new_weights = np.delete(new_weights,5*i+j,0)
-					new_bv = np.delete(new_bv,5*i+j,0)
-		print("new weights after " + str(new_weights.size))
-		"""for i in range(new_weights.shape[0]):
-			if (new_weights[i][0] != 0):
-				print(new_weights[i])"""
-		#print(new_weights)
+			elif (user[i] == 0):
+				[delete_indices.append((5*i) + j) for j in range(5)]
+		new_weights = np.delete(new_weights,delete_indices,0)
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size)), new_weights, new_bv
 
@@ -107,7 +96,7 @@ class Recommender:
 		self.average_weights = self.load_matrix(WEIGHTS_FILE)
 		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
 		self.average_bh 	 = self.load_matrix(HIDDEN_BIAS_FILE)
-
+		print(self.dataset.training_X[:,u])
 		data, w, bv = self.ratings_to_softmax_units(self.dataset.training_X[:,u])
 		print(data.shape)
 		print(w.shape)
