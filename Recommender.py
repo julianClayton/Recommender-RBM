@@ -72,10 +72,7 @@ class Recommender:
 		f = open(dataset, "rb")
 		return np.load(f)
 
-	def _gamma(self, x, biases):
-		return np.exp(np.dot(x, biases))
-
-	def ratings_to_softmax_units(self, user):
+	def ratings_to_softmax_units(self, user, q):
 		sm_units = []
 		delete_indices = []
 		new_weights = self.average_weights
@@ -84,37 +81,79 @@ class Recommender:
 			if (user[i] != 0):
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
-				for j in range(feature.size):
-					sm_units.append(feature[j])
+				[sm_units.append(feature[j]) for j in range(5)]
+			elif (i == q):
+				#This is a placeholder for the predicted movie so it does not get removed 
+				[sm_units.append(-1) for j in range(RATING_MAX)]
 			elif (user[i] == 0):
 				[delete_indices.append((5*i) + j) for j in range(5)]
 		new_weights = np.delete(new_weights,delete_indices,0)
+		new_bv		= np.delete(new_bv, delete_indices, 0)
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size)), new_weights, new_bv
+
+	def _new_index(self, data):
+		for i in range(data.size):
+			if data[0][i] == -1:
+				for j in range(RATING_MAX):
+					data[0][i + j] = 0
+				return data, i 
+
+	def _set_rating(self, data, index, rating):
+		for i in range(data.size):
+			if i == index:
+				for j in range(RATING_MAX):
+					data[0][i + j] = 0
+				data[0][i + (rating - 1)] = 1
+		return data
+
+	def _get_rating_biases(self, data,  biases, index):
+		r,b = [],[]
+		r.append([data[0][index +j] for j in range(RATING_MAX)])
+		b.append([biases[index + j] for j in range(RATING_MAX)])
+		return np.asarray(r),np.asarray(b)
+
+	def _dot_list(self, list):
+		A = list[0]
+		for i in range(1, len(list)):
+			print("multiplying: ")
+			print(A)
+			print(list[i])
+			print(list[i])
+			A = np.multiply(A, list[i].T)
+		return A
+
+	def _gamma(self, x, biases):
+		return np.exp(np.dot(x, biases.T))
 
 	def recommend(self, u, q):
 		self.average_weights = self.load_matrix(WEIGHTS_FILE)
 		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
 		self.average_bh 	 = self.load_matrix(HIDDEN_BIAS_FILE)
-		print(self.dataset.training_X[:,u])
-		data, w, bv = self.ratings_to_softmax_units(self.dataset.training_X[:,u])
-		print(data.shape)
-		print(w.shape)
-		print(bv.shape)
-		print(data)
-		probs = [] 
-
-		#for i in range(RATING_MAX):
-		#	for j in range(HIDDEN_LAYER_N):
-		#		1 + np.exp(np.dot(user, average_weights) + np.dot(user, average_weights[]))
 
 
+		data, w, bv 		 = self.ratings_to_softmax_units(self.dataset.training_X[:,u], q)
+		bh = self.average_bh
+
+		data, new_q  = self._new_index(data)
+
+		mat_placeholder = []
+		res_placeholder = []
+
+		for r in range(RATING_MAX):
+			data = self._set_rating(data, new_q, r)
+			for f in range(HIDDEN_LAYER_N):
+				res_placeholder.append(1 + np.exp(np.dot(data, w) + bh))
+			#r, b = self._get_rating_biases(data, bv, new_q)
+			mat_placeholder.append(np.dot(self._gamma(bv, data) ,self._dot_list(res_placeholder)))
+
+		print(mat_placeholder)
 
 
 if __name__ == "__main__":
 	recommender = Recommender()
 	#recommender.train()
-	recommender.recommend(3, 4)
+	recommender.recommend(3, 350)
 
 
 
