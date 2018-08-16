@@ -4,6 +4,7 @@ import numpy as np
 import os
 from pathlib import Path
 import tensorflow as tf
+import math 
 
 np.set_printoptions(threshold=np.nan)
 
@@ -126,6 +127,7 @@ class Recommender:
 	def _gamma(self, x, biases):
 		return np.exp(np.dot(x, biases.T))
 
+		
 	def recommend(self, u, q):
 		self.average_weights = self.load_matrix(WEIGHTS_FILE)
 		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
@@ -149,11 +151,41 @@ class Recommender:
 
 		print(mat_placeholder)
 
+	def sigmoid(self, x):
+  		return 1 / (1 + math.exp(-x))
+
+	def recommend2(self, u, q):
+		self.average_weights = self.load_matrix(WEIGHTS_FILE)
+		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
+		self.average_bh		 = self.load_matrix(HIDDEN_BIAS_FILE)
+
+		x, w, bv 		 = self.ratings_to_softmax_units(self.dataset.training_X[:,u], q)
+		bh = self.average_bh
+
+		x, new_q  = self._new_index(x)
+
+		results = []
+
+		for r in range(RATING_MAX):
+			x = self._set_rating(x, new_q, (r+1))
+			rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=x, format_input=False)
+			sample = rbm.run_prediciton(x, w, bh, bv)
+			results.append(sample)
+
+		print(results)
+
+
+	def forward_prop(self,x, visible_samples):
+		hidden_activation = sigmoid(np.dot(x, self.w) + self.bh)
+		return self.get_
+
+	def get_activations(self, probs):
+		return relu(tf.sign(probs - np.random.uniform(tf.shape(probs))))
 
 if __name__ == "__main__":
 	recommender = Recommender()
 	#recommender.train()
-	recommender.recommend(3, 350)
+	recommender.recommend2(3, 350)
 
 
 
