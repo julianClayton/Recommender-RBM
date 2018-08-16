@@ -13,7 +13,8 @@ class RBM:
 		dataset,
 		batch_size=50,
 		alpha=0.01,
-		W=None):
+		W=None,
+		format_input=True):
 
 
 		self.W = W
@@ -23,7 +24,6 @@ class RBM:
 		self.hidden_layer_n = hidden_layer_n
 		#We will only use non-zero values when training
 		self.full_user		= dataset
-
 		self._full_weights 	= np.zeros((self.full_user.size * 5, hidden_layer_n))
 		self._full_bh 		= np.zeros((self.hidden_layer_n))
 		self._full_bv 		= np.zeros((self.full_user.size * 5))
@@ -32,7 +32,12 @@ class RBM:
 		self.bh_locations	= []
 		self.bv_locations	= []	
 
-		self.user 			= self.ratings_to_softmax_units(dataset)
+		if format_input:
+			self.user 			= self.ratings_to_softmax_units(dataset)
+		else:
+			self.user= dataset
+
+		print(self.user)
 		num_ratings 		= 5
 
 		self.input_layer_n 		= self.user.size
@@ -115,15 +120,26 @@ class RBM:
 		counter = 0
 		for i in range(len(user)):
 			if (user[i] != 0):
-				self.w_locations.append(counter + i)
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
+				feature = self.softmax(feature.T)
 				for j in range(feature.size):
 					sm_units.append(feature[j])
-					self.w_locations.append(counter + j)
-			counter += 5 
+					self.w_locations.append(5*i + j)
+			#counter += 5 
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size))
+
+	def run_prediction(self, data, w, bh, bv):
+		self.W 	= tf.convert_to_tensor(w)
+		self.bh = tf.convert_to_tensor(bh)
+		self.bv = tf.convert_to_tensor(bv)
+
+		init  = tf.global_variables_initializer()
+		with tf.Session() as sess:
+			sess.run(init)
+			res = sess.run(self.v_sample, feed_dict={self.x: data})
+		return res
 
 	def run(self):
 		with tf.Session() as sess:
@@ -133,14 +149,14 @@ class RBM:
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				sess.run(self.update_all, feed_dict={self.x: self.user})
-				#res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
-				#print(res)
+				res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				iteration+=1
 			self._set_full_weights(self.W.eval())
 			self._set_full_bv(self.bv.eval())
 			self._full_bh = self.bh.eval()
 			print("Done training")
+
 
 	@property
 	def full_weights(self):
