@@ -36,6 +36,8 @@ class RBM:
 			self.user 			= self.ratings_to_softmax_units(dataset)
 		else:
 			self.user= dataset
+
+		print(self.user)
 		num_ratings 		= 5
 
 		self.input_layer_n 		= self.user.size
@@ -120,6 +122,7 @@ class RBM:
 			if (user[i] != 0):
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
+				feature = self.softmax(feature.T)
 				for j in range(feature.size):
 					sm_units.append(feature[j])
 					self.w_locations.append(5*i + j)
@@ -127,19 +130,15 @@ class RBM:
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size))
 
-	def run_prediciton(self, data, w, bh, bv):
+	def run_prediction(self, data, w, bh, bv):
 		self.W 	= tf.convert_to_tensor(w)
 		self.bh = tf.convert_to_tensor(bh)
 		self.bv = tf.convert_to_tensor(bv)
-		#self.x  = tf.placeholder(tf.float32, [None, data.size], name="x") 
-		#tf.reshape(self.x, tf.stack([data.size]))
 
 		init  = tf.global_variables_initializer()
-		print(data)
 		with tf.Session() as sess:
 			sess.run(init)
 			res = sess.run(self.v_sample, feed_dict={self.x: data})
-
 		return res
 
 	def run(self):
@@ -151,7 +150,6 @@ class RBM:
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				sess.run(self.update_all, feed_dict={self.x: self.user})
 				res = sess.run([self.x, self.v_sample], feed_dict={self.x: self.user})
-				#print(res)
 				new_cost = sess.run(self.err, feed_dict={self.x: self.user})
 				iteration+=1
 			self._set_full_weights(self.W.eval())

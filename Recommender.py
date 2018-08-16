@@ -73,6 +73,10 @@ class Recommender:
 		f = open(dataset, "rb")
 		return np.load(f)
 
+
+	def softmax(self, x):
+		return np.exp(x) / np.sum(np.exp(x), axis=0)
+
 	def ratings_to_softmax_units(self, user, q):
 		sm_units = []
 		delete_indices = []
@@ -82,6 +86,7 @@ class Recommender:
 			if (user[i] != 0):
 				feature = np.zeros(5)
 				feature[int(user[i] - 1)] = 1
+				feature = self.softmax(feature.T)
 				[sm_units.append(feature[j]) for j in range(5)]
 			elif (i == q):
 				#This is a placeholder for the predicted movie so it does not get removed 
@@ -108,51 +113,21 @@ class Recommender:
 				data[0][i + (rating - 1)] = 1
 		return data
 
-	def _get_rating_biases(self, data,  biases, index):
-		r,b = [],[]
-		r.append([data[0][index +j] for j in range(RATING_MAX)])
-		b.append([biases[index + j] for j in range(RATING_MAX)])
-		return np.asarray(r),np.asarray(b)
 
-	def _dot_list(self, list):
-		A = list[0]
-		for i in range(1, len(list)):
-			print("multiplying: ")
-			print(A)
-			print(list[i])
-			print(list[i])
-			A = np.multiply(A, list[i].T)
-		return A
+	def get_rating(self,data, q):
+		rating = []
+		for j in range(RATING_MAX):
+			rating.append(data[0][q + j])
+		return np.asarray(rating)
 
-	def _gamma(self, x, biases):
-		return np.exp(np.dot(x, biases.T))
-
-		
-	def recommend(self, u, q):
-		self.average_weights = self.load_matrix(WEIGHTS_FILE)
-		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
-		self.average_bh 	 = self.load_matrix(HIDDEN_BIAS_FILE)
+	def get_probabilities(self, results, q):
+		probs = []
+		for i in range(len(results)):
+			rating = self.get_rating(results[i], q)
+			probs.append(rating[i])
+		return probs
 
 
-		data, w, bv 		 = self.ratings_to_softmax_units(self.dataset.training_X[:,u], q)
-		bh = self.average_bh
-
-		data, new_q  = self._new_index(data)
-
-		mat_placeholder = []
-		res_placeholder = []
-
-		for r in range(RATING_MAX):
-			data = self._set_rating(data, new_q, r)
-			for f in range(HIDDEN_LAYER_N):
-				res_placeholder.append(1 + np.exp(np.dot(data, w) + bh))
-			#r, b = self._get_rating_biases(data, bv, new_q)
-			mat_placeholder.append(np.dot(self._gamma(bv, data) ,self._dot_list(res_placeholder)))
-
-		print(mat_placeholder)
-
-	def sigmoid(self, x):
-  		return 1 / (1 + math.exp(-x))
 
 	def recommend2(self, u, q):
 		self.average_weights = self.load_matrix(WEIGHTS_FILE)
@@ -169,23 +144,16 @@ class Recommender:
 		for r in range(RATING_MAX):
 			x = self._set_rating(x, new_q, (r+1))
 			rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=x, format_input=False)
-			sample = rbm.run_prediciton(x, w, bh, bv)
+			sample = rbm.run_prediction(x, w, bh, bv)
 			results.append(sample)
 
-		print(results)
 
-
-	def forward_prop(self,x, visible_samples):
-		hidden_activation = sigmoid(np.dot(x, self.w) + self.bh)
-		return self.get_
-
-	def get_activations(self, probs):
-		return relu(tf.sign(probs - np.random.uniform(tf.shape(probs))))
+		print(self.get_probabilities(results, new_q))
 
 if __name__ == "__main__":
 	recommender = Recommender()
 	#recommender.train()
-	recommender.recommend2(3, 350)
+	recommender.recommend2(4, 350)
 
 
 
