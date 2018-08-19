@@ -3,6 +3,7 @@ import numpy as np
 import data_reader 
 import matplotlib.pyplot as plt
 from random import randint
+import time
 
 class RBM:
 
@@ -22,6 +23,7 @@ class RBM:
 		self.display_step 	= 3
 		self.iterations 	= iterations
 		self.hidden_layer_n = hidden_layer_n
+
 		#We will only use non-zero values when training
 		self.full_user		= dataset
 		self._full_weights 	= np.zeros((self.full_user.size * 5, hidden_layer_n))
@@ -37,7 +39,6 @@ class RBM:
 		else:
 			self.user= dataset
 
-		print(self.user)
 		num_ratings 		= 5
 
 		self.input_layer_n 		= self.user.size
@@ -57,7 +58,6 @@ class RBM:
 		#first pass from input to hidden
 
 		hidden_0 = self.forward_prop(self.x)
-
 
 		#first pass back to visible
 		visible_1  		   = self.get_activations(self.backward_prop(hidden_0))
@@ -141,6 +141,7 @@ class RBM:
 			res = sess.run(self.v_sample, feed_dict={self.x: data})
 		return res
 
+
 	def run(self):
 		with tf.Session() as sess:
 			sess.run(self.init)
@@ -156,6 +157,13 @@ class RBM:
 			self._set_full_bv(self.bv.eval())
 			self._full_bh = self.bh.eval()
 			print("Done training")
+
+	def display_in_out(self, x, y):
+		for i in range(0,self.input_layer_n, 5):
+			print("=====================")
+			for j in range(5):
+				print(str(x[0][i+j]) + " " + str(y[0][i+j]))
+
 
 
 	@property

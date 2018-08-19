@@ -16,8 +16,8 @@ The RBM will create a new RBM for each new user
 4. 
 """
 
-HIDDEN_LAYER_N = 30
-ITERATIONS 	   = 5
+HIDDEN_LAYER_N = 50
+ITERATIONS 	   = 100
 RATING_MAX 	   = 5
 
 WEIGHTS_FILE   		= "data/saved_weights"
@@ -38,7 +38,7 @@ class Recommender:
 	def train(self):
 		#self.dataset.training_X.shape[1]
 		self.wb = {}
-		for i in range(300):
+		for i in range(self.dataset.training_X.shape[1]):
 			user = self.dataset.training_X[:,i]
 			rbm = RBM(hidden_layer_n=HIDDEN_LAYER_N,iterations=ITERATIONS,dataset=user)
 			rbm.run()
@@ -53,9 +53,9 @@ class Recommender:
 		self.wb[VISIBLE_BIAS_FILE] = self.average_matrices(self.all_bv)
 		self.wb[HIDDEN_BIAS_FILE] = self.average_matrices(self.all_bh)
 
-		#self.save_matrix(WEIGHTS_FILE)
-		#self.save_matrix(VISIBLE_BIAS_FILE)
-		#self.save_matrix(HIDDEN_BIAS_FILE)
+		self.save_matrix(WEIGHTS_FILE)
+		self.save_matrix(VISIBLE_BIAS_FILE)
+		self.save_matrix(HIDDEN_BIAS_FILE)
 
 	def average_matrices(self, M):
 		accum_mat = np.zeros(M[0].shape)
@@ -69,7 +69,7 @@ class Recommender:
 		f = open(dataset, "wb")
 		np.save(f, self.wb[dataset])
 
-	def load_matrix(self,dataset):
+	def _load_matrix(self,dataset):
 		f = open(dataset, "rb")
 		return np.load(f)
 
@@ -77,7 +77,7 @@ class Recommender:
 	def softmax(self, x):
 		return np.exp(x) / np.sum(np.exp(x), axis=0)
 
-	def ratings_to_softmax_units(self, user, q):
+	def _ratings_to_softmax_units(self, user, q):
 		sm_units = []
 		delete_indices = []
 		new_weights = self.average_weights
@@ -114,31 +114,34 @@ class Recommender:
 		return data
 
 
-	def get_rating(self,data, q):
+	def _get_rating(self,data, q):
 		rating = []
 		for j in range(RATING_MAX):
 			rating.append(data[0][q + j])
 		return np.asarray(rating)
 
-	def get_probabilities(self, results, q):
+	def _get_probabilities(self, results, q):
 		probs = []
 		for i in range(len(results)):
-			rating = self.get_rating(results[i], q)
+			rating = self._get_rating(results[i], q)
 			probs.append(rating[i])
 		return probs
 
+	def _expected_value(self, p):
+		accum = 0
+		for i in range(len(p)):
+			accum += (i+1)*p[i]
+		return accum
 
+	def recommend(self, u, q):
+		self.average_weights = self._load_matrix(WEIGHTS_FILE)
+		self.average_bv 	 = self._load_matrix(VISIBLE_BIAS_FILE)
+		self.average_bh		 = self._load_matrix(HIDDEN_BIAS_FILE)
 
-	def recommend2(self, u, q):
-		self.average_weights = self.load_matrix(WEIGHTS_FILE)
-		self.average_bv 	 = self.load_matrix(VISIBLE_BIAS_FILE)
-		self.average_bh		 = self.load_matrix(HIDDEN_BIAS_FILE)
-
-		x, w, bv 		 = self.ratings_to_softmax_units(self.dataset.training_X[:,u], q)
+		x, w, bv 		 = self._ratings_to_softmax_units(self.dataset.training_X[:,u], q)
 		bh = self.average_bh
 
 		x, new_q  = self._new_index(x)
-
 		results = []
 
 		for r in range(RATING_MAX):
@@ -148,12 +151,16 @@ class Recommender:
 			results.append(sample)
 
 
-		print(self.get_probabilities(results, new_q))
+		probs = self._get_probabilities(results, new_q)
+		prediction = self._expected_value(self.softmax(probs))
+
+		print("Prediction: user " + str(u) + " will give movie: " + str(q) + " rating: " + str(prediction))
 
 if __name__ == "__main__":
 	recommender = Recommender()
 	#recommender.train()
-	recommender.recommend2(4, 350)
+	for i in range(30, 50):
+		recommender.recommend(i, 350)
 
 
 
