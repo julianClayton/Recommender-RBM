@@ -117,6 +117,7 @@ class Recommender:
 		features = np.asarray(sm_units)
 		return features.flatten().reshape((1, features.size)), new_weights, new_bv
 
+	#When we re-size the weight and biases the query item will have a new index 
 	def _new_index(self, data):
 		for i in range(data.size):
 			if data[0][i] == -1:
@@ -124,6 +125,8 @@ class Recommender:
 					data[0][i + j] = 0
 				return data, i 
 
+
+	#Set the rating in a matrix (one-hot). Evey 5 units corresponds to a single rating 
 	def _set_rating(self, data, index, rating):
 		for i in range(data.size):
 			if i == index:
@@ -133,12 +136,16 @@ class Recommender:
 		return data
 
 
+	#Gets the rating at query q 
 	def _get_rating(self,data, q):
 		rating = []
 		for j in range(RATING_MAX):
 			rating.append(data[0][q + j])
 		return np.asarray(rating)
 
+
+
+	#retrieves each individual probabilty for each rating
 	def _get_probabilities(self, results, q):
 		probs = []
 		for i in range(len(results)):
@@ -146,6 +153,7 @@ class Recommender:
 			probs.append(rating[i])
 		return probs
 
+	#Calculates the expeted value from a list of probabilities 
 	def _expected_value(self, p):
 		accum = 0
 		for i in range(len(p)):
